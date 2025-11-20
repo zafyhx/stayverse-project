@@ -19,31 +19,30 @@ const app = express();
 connectDB();
 
 // ===========================
-// 2. CORS FIX — AMAN & BERSIH
+// 2. CORS FIX — AMAN UNTUK VERCEL
 // ===========================
 const allowedOrigins = [
-    "https://stayverse-68y9wtkkw-zafyhxs-projects.vercel.app", // Frontend Vercel
-    "http://localhost:5173" // Dev mode Vite
+    "https://stayverse-68y9wtkkw-zafyhxs-projects.vercel.app",
+    "http://localhost:5173"
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin) return callback(null, true);  // Postman / server-to-server
-
+        if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.log("❌ CORS BLOCKED:", origin);
-            callback(new Error("Not allowed by CORS"));
+            return callback(null, true);
         }
+        console.log("❌ CORS BLOCKED:", origin);
+        return callback(new Error("Not allowed by CORS"));
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// Fix OPTIONS (Express 5)
-app.options("/*", cors());
+// FIX OPTIONS (Express 5)
+// TIDAK BOLEH PAKAI "/*"
+app.options("*", cors());
 
 // ===========================
 // 3. MIDDLEWARE UMUM
@@ -63,34 +62,34 @@ app.use('/api/cancellations', cancellationRoutes);
 app.use('/api/admin', adminRoutes);
 
 // ===========================
-// 5. ROOT ROUTE (CEK SERVER + DB)
+// 5. ROOT ROUTE
 // ===========================
 app.get('/', async (req, res) => {
-    let dbStatus = 'Checking...';
     try {
         await sequelize.authenticate();
-        dbStatus = '✅ Connected to Neon PostgreSQL';
+        res.json({
+            server: "Stayverse Backend Running",
+            database: "Connected to Neon PostgreSQL",
+            timestamp: new Date()
+        });
     } catch (error) {
-        dbStatus = `❌ Error: ${error.message}`;
+        res.json({
+            server: "Running",
+            database: "Connection failed",
+            error: error.message
+        });
     }
-
-    res.status(200).json({
-        server: '✅ Stayverse Backend Running',
-        database: dbStatus,
-        environment: process.env.NODE_ENV,
-        timestamp: new Date()
-    });
 });
 
 // ===========================
 // 6. GLOBAL ERROR HANDLER
 // ===========================
 app.use((err, req, res, next) => {
-    console.error('🔥 SERVER ERROR:', err.stack);
+    console.error("🔥 SERVER ERROR:", err.stack);
     res.status(500).json({
         status: 'error',
-        message: 'Terjadi kesalahan internal server',
-        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
+        message: 'Internal Server Error',
+        detail: err.message
     });
 });
 
