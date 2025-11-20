@@ -1,31 +1,58 @@
-
 const express = require('express');
-const path = require('path');
 const cors = require('cors');
-const app = express();
+const path = require('path');
 
-app.use(cors());
-app.use(express.json());
-
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
+// Import Routes
 const hotelRoutes = require('./routes/hotelRoutes');
-const reservationRoutes = require('./routes/reservationRoutes');
 const userRoutes = require('./routes/userRoutes');
+const reservationRoutes = require('./routes/reservationRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const cancellationRoutes = require('./routes/cancellationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
+const app = express();
+
+// --- 1. KONFIGURASI CORS (SATPAM PINTU) ---
+// Kita izinkan SEMUA origin, SEMUA method, dan SEMUA header.
+app.use(cors({
+    origin: true, // 'true' artinya izinkan siapapun yang merequest
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: true
+}));
+
+// PENTING: Tangani request 'OPTIONS' (Preflight) secara eksplisit
+// Ini sering bikin error di Vercel kalau tidak ada
+app.options('*', cors());
+
+// --- 2. MIDDLEWARE ---
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Middleware statis untuk akses gambar (Hanya jalan jika folder ada)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// --- 3. ROUTING (JALUR DATA) ---
+// Pastikan prefix-nya '/api' agar cocok dengan Frontend
 app.use('/api/hotels', hotelRoutes);
-app.use('/api/reservations', reservationRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/reservations', reservationRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/cancellations', cancellationRoutes);
 app.use('/api/admin', adminRoutes);
 
+// --- 4. ROUTE PENGECEKAN (TEST) ---
 app.get('/', (req, res) => {
-    res.send('Stayverse API is running 🚀');
+    res.send('✅ Server Stayverse Backend is RUNNING!');
+});
+
+// --- 5. GLOBAL ERROR HANDLER ---
+app.use((err, req, res, next) => {
+    console.error('🔥 SERVER ERROR:', err.stack);
+    res.status(500).json({
+        message: 'Terjadi kesalahan pada server',
+        error: process.env.NODE_ENV === 'production' ? {} : err.message
+    });
 });
 
 module.exports = app;
