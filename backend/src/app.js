@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { connectDB, sequelize } = require('./config/db'); // Tambah sequelize untuk cek koneksi
+const { connectDB, sequelize } = require('./config/db');
 
 // Import Routes
 const hotelRoutes = require('./routes/hotelRoutes');
@@ -13,30 +13,48 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
-// --- 0. PANGGIL KONEKSI DATABASE ---
-// Penting: Panggil ini agar server terhubung ke DB saat start
-connectDB(); 
+// ===========================
+// 1. CONNECT DATABASE
+// ===========================
+connectDB();
 
-// --- 1. KONFIGURASI CORS (VERSI STABIL) ---
-// Menggunakan Regex untuk mengizinkan frontend di vercel atau localhost
+// ===========================
+// 2. CORS FIX — AMAN & BERSIH
+// ===========================
+const allowedOrigins = [
+    "https://stayverse-68y9wtkkw-zafyhxs-projects.vercel.app", // Frontend Vercel
+    "http://localhost:5173" // Dev mode Vite
+];
+
 app.use(cors({
-    origin: /^https?:\/\/.*$/, // Izinkan semua domain http/https
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);  // Postman / server-to-server
+
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.log("❌ CORS BLOCKED:", origin);
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 
-// --- PERBAIKAN EXPRESS 5 ---
-// Gunakan Regex /.*/ (tanpa tanda kutip) untuk menangani preflight request.
-// Jangan gunakan '*' string karena akan error "Missing parameter name".
-app.options(/.*/, cors());
+// Fix OPTIONS (Express 5)
+app.options("*", cors());
 
-// --- 2. MIDDLEWARE ---
+// ===========================
+// 3. MIDDLEWARE UMUM
+// ===========================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// --- 3. ROUTING ---
+// ===========================
+// 4. ROUTES
+// ===========================
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reservations', reservationRoutes);
@@ -44,8 +62,9 @@ app.use('/api/blog', blogRoutes);
 app.use('/api/cancellations', cancellationRoutes);
 app.use('/api/admin', adminRoutes);
 
-// --- 4. ROUTE CEK SERVER & DATABASE ---
-// Akses root url backend di browser untuk melihat status ini
+// ===========================
+// 5. ROOT ROUTE (CEK SERVER + DB)
+// ===========================
 app.get('/', async (req, res) => {
     let dbStatus = 'Checking...';
     try {
@@ -56,14 +75,16 @@ app.get('/', async (req, res) => {
     }
 
     res.status(200).json({
-        server: '✅ Server Stayverse Backend is RUNNING!',
+        server: '✅ Stayverse Backend Running',
         database: dbStatus,
         environment: process.env.NODE_ENV,
         timestamp: new Date()
     });
 });
 
-// --- 5. GLOBAL ERROR HANDLER ---
+// ===========================
+// 6. GLOBAL ERROR HANDLER
+// ===========================
 app.use((err, req, res, next) => {
     console.error('🔥 SERVER ERROR:', err.stack);
     res.status(500).json({
