@@ -13,27 +13,26 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 // --- 1. KONFIGURASI CORS (SATPAM PINTU) ---
-// Kita izinkan SEMUA origin, SEMUA method, dan SEMUA header.
 app.use(cors({
-    origin: true, // 'true' artinya izinkan siapapun yang merequest
+    origin: true, 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true
 }));
 
-// PENTING: Tangani request 'OPTIONS' (Preflight) secara eksplisit
-// PERBAIKAN EXPRESS 5: Mengganti '*' dengan '(.*)'
-app.options('(.*)', cors());
+// PENTING: Tangani request 'OPTIONS' (Preflight)
+// PERBAIKAN V3: Menggunakan Regex /.*/ (tanpa tanda kutip) bukan string.
+// Ini memaksa Express mencocokkan "apa saja" tanpa mempedulikan nama parameter.
+app.options(/.*/, cors());
 
 // --- 2. MIDDLEWARE ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware statis untuk akses gambar (Hanya jalan jika folder ada)
+// Middleware statis
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // --- 3. ROUTING (JALUR DATA) ---
-// Pastikan prefix-nya '/api' agar cocok dengan Frontend
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reservations', reservationRoutes);
@@ -47,8 +46,12 @@ app.get('/', (req, res) => {
 });
 
 // --- 5. PENANGANAN RUTE TIDAK DITEMUKAN (404) ---
-// PERBAIKAN EXPRESS 5: Gunakan '(.*)' untuk menangkap rute nyasar
-app.all('(.*)', (req, res) => {
+// PERBAIKAN V3: Gunakan app.use() tanpa path di akhir.
+// Ini akan menangkap semua request yang lolos dari route di atasnya.
+// Jauh lebih aman daripada menggunakan wildcard '*' atau regex di Express 5.
+app.use((req, res, next) => {
+    // Cek apakah ini error handler (punya 4 argumen) atau 404 handler
+    // Jika sampai sini, berarti route tidak ketemu.
     res.status(404).json({
         status: 'fail',
         message: `Route ${req.originalUrl} not found on this server!`
