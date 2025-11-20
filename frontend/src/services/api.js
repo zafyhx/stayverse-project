@@ -7,7 +7,7 @@ const isProduction = import.meta.env.MODE === 'production';
 
 const api = axios.create({
     baseURL: isProduction
-        ? 'https://stayverse-fry8wfq6q-zafyhxs-projects.vercel.app/' // 👈 GANTI LINK INI DENGAN URL BACKEND VERCEL ANDA
+        ? 'https://stayverse-fry8wfq6q-zafyhxs-projects.vercel.app/api/' // 👈 GANTI LINK INI DENGAN URL BACKEND VERCEL ANDA
         : 'http://localhost:5001/api', // Kalau di laptop, pakai ini
 });
 
