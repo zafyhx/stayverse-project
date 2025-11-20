@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { connectDB } = require('./config/db');
+const { connectDB, sequelize } = require('./config/db'); // Tambah sequelize untuk cek koneksi
 
 // Import Routes
 const hotelRoutes = require('./routes/hotelRoutes');
@@ -14,19 +14,21 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 // --- 0. PANGGIL KONEKSI DATABASE ---
+// Penting: Panggil ini agar server terhubung ke DB saat start
 connectDB(); 
 
-// --- 1. KONFIGURASI CORS ---
+// --- 1. KONFIGURASI CORS (VERSI STABIL) ---
+// Menggunakan Regex untuk mengizinkan frontend di vercel atau localhost
 app.use(cors({
-    origin: true, // Izinkan semua origin
+    origin: /^https?:\/\/.*$/, // Izinkan semua domain http/https
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true
 }));
 
-// --- PERBAIKAN KRUSIAL (PENYEBAB ERROR 500) ---
-// Salah: app.options('*', cors());  <-- Ini bikin crash di Express 5
-// Benar: app.options(/.*/, cors()); <-- Ini pakai Regex (tanpa tanda kutip)
+// --- PERBAIKAN EXPRESS 5 ---
+// Gunakan Regex /.*/ (tanpa tanda kutip) untuk menangani preflight request.
+// Jangan gunakan '*' string karena akan error "Missing parameter name".
 app.options(/.*/, cors());
 
 // --- 2. MIDDLEWARE ---
@@ -42,10 +44,20 @@ app.use('/api/blog', blogRoutes);
 app.use('/api/cancellations', cancellationRoutes);
 app.use('/api/admin', adminRoutes);
 
-// --- 4. ROUTE CEK SERVER ---
-app.get('/', (req, res) => {
+// --- 4. ROUTE CEK SERVER & DATABASE ---
+// Akses root url backend di browser untuk melihat status ini
+app.get('/', async (req, res) => {
+    let dbStatus = 'Checking...';
+    try {
+        await sequelize.authenticate();
+        dbStatus = '✅ Connected to Neon PostgreSQL';
+    } catch (error) {
+        dbStatus = `❌ Error: ${error.message}`;
+    }
+
     res.status(200).json({
-        message: '✅ Server Stayverse Backend is RUNNING!',
+        server: '✅ Server Stayverse Backend is RUNNING!',
+        database: dbStatus,
         environment: process.env.NODE_ENV,
         timestamp: new Date()
     });
