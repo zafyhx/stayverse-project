@@ -22,8 +22,8 @@ app.use(cors({
 }));
 
 // PENTING: Tangani request 'OPTIONS' (Preflight) secara eksplisit
-// Ini sering bikin error di Vercel kalau tidak ada
-app.options('*', cors());
+// PERBAIKAN EXPRESS 5: Mengganti '*' dengan '(.*)'
+app.options('(.*)', cors());
 
 // --- 2. MIDDLEWARE ---
 app.use(express.json());
@@ -46,7 +46,16 @@ app.get('/', (req, res) => {
     res.send('✅ Server Stayverse Backend is RUNNING!');
 });
 
-// --- 5. GLOBAL ERROR HANDLER ---
+// --- 5. PENANGANAN RUTE TIDAK DITEMUKAN (404) ---
+// PERBAIKAN EXPRESS 5: Gunakan '(.*)' untuk menangkap rute nyasar
+app.all('(.*)', (req, res) => {
+    res.status(404).json({
+        status: 'fail',
+        message: `Route ${req.originalUrl} not found on this server!`
+    });
+});
+
+// --- 6. GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
     console.error('🔥 SERVER ERROR:', err.stack);
     res.status(500).json({
