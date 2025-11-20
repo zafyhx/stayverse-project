@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { connectDB } = require('./config/db'); // Import fungsi koneksi
+const { connectDB } = require('./config/db');
 
 // Import Routes
 const hotelRoutes = require('./routes/hotelRoutes');
@@ -14,21 +14,20 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 // --- 0. PANGGIL KONEKSI DATABASE ---
-// INI YANG KURANG DI KODE ANDA SEBELUMNYA!
 connectDB(); 
 
-// --- 1. KONFIGURASI CORS "ANTI-REWEL" ---
-// Kita gunakan library cors tapi dengan trik Regex agar fleksibel
+// --- 1. KONFIGURASI CORS ---
 app.use(cors({
-    // Regex ini berarti: "Izinkan semua domain yang diawali http atau https"
-    origin: /^https?:\/\/.*$/, 
+    origin: true, // Izinkan semua origin
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    credentials: true // Izinkan cookie/token lewat
+    credentials: true
 }));
 
-// Tangani Preflight Request (OPTIONS) secara eksplisit
-app.options('*', cors());
+// --- PERBAIKAN KRUSIAL (PENYEBAB ERROR 500) ---
+// Salah: app.options('*', cors());  <-- Ini bikin crash di Express 5
+// Benar: app.options(/.*/, cors()); <-- Ini pakai Regex (tanpa tanda kutip)
+app.options(/.*/, cors());
 
 // --- 2. MIDDLEWARE ---
 app.use(express.json());
