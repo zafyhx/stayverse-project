@@ -43,7 +43,7 @@ app.use(cors({
 }));
 
 // Fix OPTIONS (Express 5)
-app.options("*", cors());
+app.options("/*", cors());
 
 // ===========================
 // 3. MIDDLEWARE UMUM
