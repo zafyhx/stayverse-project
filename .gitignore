@@ -1,0 +1,20 @@
+# 1. Dependency (Folder ini berat, jangan di-upload)
+node_modules/
+*/node_modules/
+
+# 2. Environment Variables (JANGAN UPLOAD INI - BAHAYA)
+.env
+backend/.env
+frontend/.env
+
+# 3. Build Output
+dist/
+build/
+
+# 4. System Files
+.DS_Store
+Thumbs.db
+
+# 5. Uploaded User Files (Opsional: agar repo tidak bengkak karena gambar)
+backend/uploads/
+!backend/uploads/.gitkeep

@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: stayverse-db
+    restart: always
+    environment:
+      POSTGRES_USER: stayverse_user
+      POSTGRES_PASSWORD: stayverse_pass
+      POSTGRES_DB: stayverse_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - stayverse_data:/var/lib/postgresql/data
+
+volumes:
+  stayverse_data:
