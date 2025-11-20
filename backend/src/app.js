@@ -1,5 +1,7 @@
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
+const { connectDB } = require('./config/db'); // Import fungsi koneksi
 
 // Import Routes
 const hotelRoutes = require('./routes/hotelRoutes');
@@ -11,20 +13,22 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
-// --- 1. KONFIGURASI CORS MANUAL (SUPER KUAT) ---
-// Kita atur header izin secara manual agar tidak ada penolakan.
-app.use((req, res, next) => {
-    // Izinkan Siapapun (*) mengakses
-    res.header("Access-Control-Allow-Origin", "*"); 
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
+// --- 0. PANGGIL KONEKSI DATABASE ---
+// INI YANG KURANG DI KODE ANDA SEBELUMNYA!
+connectDB(); 
 
-    // Jika browser minta izin (Preflight Check), langsung bilang OK (200)
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
+// --- 1. KONFIGURASI CORS "ANTI-REWEL" ---
+// Kita gunakan library cors tapi dengan trik Regex agar fleksibel
+app.use(cors({
+    // Regex ini berarti: "Izinkan semua domain yang diawali http atau https"
+    origin: /^https?:\/\/.*$/, 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: true // Izinkan cookie/token lewat
+}));
+
+// Tangani Preflight Request (OPTIONS) secara eksplisit
+app.options('*', cors());
 
 // --- 2. MIDDLEWARE ---
 app.use(express.json());
@@ -41,15 +45,20 @@ app.use('/api/admin', adminRoutes);
 
 // --- 4. ROUTE CEK SERVER ---
 app.get('/', (req, res) => {
-    res.send('✅ Server Stayverse Backend is RUNNING & CORS ENABLED!');
+    res.status(200).json({
+        message: '✅ Server Stayverse Backend is RUNNING!',
+        environment: process.env.NODE_ENV,
+        timestamp: new Date()
+    });
 });
 
-// --- 5. ERROR HANDLER ---
+// --- 5. GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
     console.error('🔥 SERVER ERROR:', err.stack);
     res.status(500).json({
-        message: 'Terjadi kesalahan pada server',
-        error: process.env.NODE_ENV === 'production' ? {} : err.message
+        status: 'error',
+        message: 'Terjadi kesalahan internal server',
+        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
     });
 });
 
