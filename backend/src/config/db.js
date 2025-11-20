@@ -1,5 +1,6 @@
 // src/config/db.js
 const { Sequelize } = require('sequelize');
+const pg = require('pg');
 require('dotenv').config();
 
 // Cek apakah kita sedang di mode production (Cloud) atau development (Laptop)
@@ -13,6 +14,7 @@ const sequelize = new Sequelize(
         host: process.env.DB_HOST,
         port: process.env.DB_PORT || 5432,
         dialect: 'postgres',
+        dialectModule: pg,
         logging: false,
         pool: {
             max: 5,
@@ -36,7 +38,7 @@ const connectDB = async () => {
         console.log('✅ Database connected successfully!');
     } catch (error) {
         console.error('❌ Database connection failed:', error);
-        process.exit(1);
+        console.error(error);
     }
 };
 
